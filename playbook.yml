@@ -1,0 +1,52 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  sudo: no
+  vars:
+    ruby_version: 2.2.1
+    homebrew_packages_taps:
+      - caskroom/versions
+
+    homebrew_packages_packages:
+      - { name: rbenv }
+      - { name: ruby-build }
+      - { name: node }
+      - { name: sqlite3 }
+      - { name: heroku-toolbelt }
+
+    homebrew_cask_packages_packages:
+      - java
+      - dropbox
+      - virtualbox
+      - vagrant
+      - google-chrome
+      - brackets
+
+  roles:
+    - hnakamur.homebrew-packages
+    - hnakamur.homebrew-cask-packages
+
+  tasks:
+    - name: check whether a specific version of ruby is installed or not
+      shell: rbenv versions | grep {{ ruby_version }}
+      register: ruby_installed
+      ignore_errors: yes
+    - name: install ruby with rbenv
+      command: rbenv install {{ ruby_version }}
+      when: ruby_installed|failed
+    - name: set ruby version global
+      command: rbenv global {{ruby_version}}
+      when: ruby_installed|failed
+    - name: write rbenv path
+      shell: echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
+      when: ruby_installed|failed
+    - name: reload .zshrc
+      shell: source ~/.bash_profile
+      when: ruby_installed|failed
+    - name: install bundler gem
+      command: gem install bundler --no-ri --no-rdoc
+    - name: rbenv rehash
+      command: rbenv rehash
+    - name: install rails gem
+      command: gem install rails --no-ri --no-rdoc
